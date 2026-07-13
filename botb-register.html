@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Five & Dive — Battle of the Bands</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;500;600&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --ink:    #0d0d0d;
+    --paper:  #f5f2ed;
+    --stage:  #c8a84b;   /* warm gold — venue spotlight */
+    --dim:    #6b6660;
+    --card:   #ffffff;
+    --border: #e0dbd4;
+    --error:  #c0392b;
+    --ok:     #27ae60;
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--ink);
+    color: var(--ink);
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 16px;
+    line-height: 1.5;
+    min-height: 100vh;
+  }
+
+  /* ── HEADER ── */
+  .header {
+    background: var(--ink);
+    padding: 48px 24px 36px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .header::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse 70% 60% at 50% 0%, rgba(200,168,75,0.18) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .venue-tag {
+    display: inline-block;
+    font-family: 'Inter', sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--stage);
+    margin-bottom: 16px;
+  }
+  .header h1 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(52px, 12vw, 96px);
+    letter-spacing: 0.04em;
+    color: #ffffff;
+    line-height: 0.92;
+    margin-bottom: 8px;
+  }
+  .header h1 span { color: var(--stage); }
+  .event-bar {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(200,168,75,0.12);
+    border: 1px solid rgba(200,168,75,0.3);
+    border-radius: 32px;
+    padding: 8px 20px;
+    margin-top: 20px;
+    color: #c8c4be;
+    font-size: 13px;
+    font-weight: 400;
+    letter-spacing: 0.04em;
+  }
+  .event-bar .dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--stage);
+    flex-shrink: 0;
+  }
+  /* JS will update these from URL params */
+  #event-date-label { /* e.g. "July 30, 2025" */ }
+  #event-name-label { /* e.g. "Battle of the Bands — Solo Artists" */ }
+
+  /* ── CARD ── */
+  .card {
+    background: var(--card);
+    max-width: 540px;
+    margin: 0 auto;
+    border-radius: 20px 20px 0 0;
+    padding: 40px 36px 48px;
+    position: relative;
+  }
+  @media (max-width: 600px) {
+    .card { padding: 32px 22px 48px; border-radius: 16px 16px 0 0; }
+  }
+
+  .card-intro {
+    margin-bottom: 32px;
+  }
+  .card-intro p {
+    font-size: 14px;
+    color: var(--dim);
+    line-height: 1.65;
+  }
+  .card-intro strong { color: var(--ink); }
+
+  /* ── FORM FIELDS ── */
+  .field { margin-bottom: 20px; }
+  .field label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--dim);
+    margin-bottom: 6px;
+  }
+  .field input[type="text"],
+  .field input[type="tel"],
+  .field input[type="email"],
+  .field select {
+    width: 100%;
+    background: var(--paper);
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    padding: 13px 16px;
+    font-family: inherit;
+    font-size: 16px; /* prevents iOS zoom */
+    color: var(--ink);
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+  .field input:focus,
+  .field select:focus {
+    border-color: var(--stage);
+    box-shadow: 0 0 0 3px rgba(200,168,75,0.15);
+  }
+  .field input.err { border-color: var(--error); }
+  .field .hint {
+    font-size: 11px;
+    color: var(--dim);
+    margin-top: 4px;
+  }
+  .field .err-msg {
+    font-size: 11px;
+    color: var(--error);
+    margin-top: 4px;
+    display: none;
+  }
+  .field.has-err .err-msg { display: block; }
+  .field.has-err input { border-color: var(--error); }
+
+  /* Instagram prefix wrapper */
+  .insta-wrap {
+    display: flex;
+    align-items: center;
+    background: var(--paper);
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .insta-wrap:focus-within {
+    border-color: var(--stage);
+    box-shadow: 0 0 0 3px rgba(200,168,75,0.15);
+  }
+  .insta-wrap span {
+    padding: 13px 0 13px 16px;
+    font-size: 16px;
+    color: var(--dim);
+    flex-shrink: 0;
+    user-select: none;
+  }
+  .insta-wrap input {
+    border: none !important;
+    box-shadow: none !important;
+    background: transparent;
+    padding-left: 2px !important;
+    flex: 1;
+  }
+  .insta-wrap.err { border-color: var(--error) !important; }
+  .field.has-err .insta-wrap { border-color: var(--error); }
+
+  /* ── CONFIRM CHECKBOX ── */
+  .confirm-block {
+    background: #f8f5ef;
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    padding: 18px;
+    margin: 24px 0 28px;
+  }
+  .confirm-block label {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    cursor: pointer;
+    font-size: 14px;
+    color: var(--ink);
+    line-height: 1.55;
+    text-transform: none;
+    letter-spacing: normal;
+    font-weight: 400;
+  }
+  .confirm-block input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    border-radius: 5px;
+    border: 2px solid var(--border);
+    background: white;
+    flex-shrink: 0;
+    margin-top: 2px;
+    -webkit-appearance: none;
+    appearance: none;
+    cursor: pointer;
+    position: relative;
+    transition: background 0.12s, border-color 0.12s;
+  }
+  .confirm-block input[type="checkbox"]:checked {
+    background: var(--stage);
+    border-color: var(--stage);
+  }
+  .confirm-block input[type="checkbox"]:checked::after {
+    content: '';
+    position: absolute;
+    left: 4px; top: 1px;
+    width: 8px; height: 12px;
+    border: 2px solid white;
+    border-top: none; border-left: none;
+    transform: rotate(45deg);
+  }
+  .confirm-block.has-err { border-color: var(--error); background: #fff5f5; }
+
+  /* ── SUBMIT ── */
+  .btn-submit {
+    width: 100%;
+    background: var(--stage);
+    color: var(--ink);
+    border: none;
+    border-radius: 12px;
+    padding: 17px;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    letter-spacing: 0.1em;
+    cursor: pointer;
+    transition: opacity 0.15s, transform 0.1s;
+  }
+  .btn-submit:hover { opacity: 0.88; }
+  .btn-submit:active { transform: scale(0.98); }
+  .btn-submit:disabled { opacity: 0.45; cursor: not-allowed; }
+
+  .fine-print {
+    text-align: center;
+    font-size: 11px;
+    color: var(--dim);
+    margin-top: 14px;
+    line-height: 1.5;
+  }
+
+  /* ── SUCCESS ── */
+  .success-screen {
+    display: none;
+    text-align: center;
+    padding: 48px 0 24px;
+  }
+  .success-icon {
+    width: 64px; height: 64px;
+    background: var(--stage);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 20px;
+    font-size: 28px;
+  }
+  .success-screen h2 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 36px;
+    letter-spacing: 0.05em;
+    margin-bottom: 10px;
+  }
+  .success-screen p {
+    font-size: 14px;
+    color: var(--dim);
+    max-width: 300px;
+    margin: 0 auto;
+    line-height: 1.6;
+  }
+
+  /* ── ERROR BANNER ── */
+  .err-banner {
+    display: none;
+    background: #fff0f0;
+    border: 1px solid var(--error);
+    border-radius: 10px;
+    padding: 12px 16px;
+    font-size: 13px;
+    color: var(--error);
+    margin-bottom: 20px;
+  }
+
+  /* ── FOOTER ── */
+  .footer {
+    background: var(--ink);
+    text-align: center;
+    padding: 24px;
+    font-size: 11px;
+    color: #4a4643;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="venue-tag">Five &amp; Dive · West Edmonton Mall</div>
+  <h1>Battle<br>of the<br><span>Bands</span></h1>
+  <div class="event-bar">
+    <span class="dot"></span>
+    <span id="event-name-label">Solo Artists Edition</span>
+    <span style="color:#4a4643">·</span>
+    <span id="event-date-label">July 30, 2025</span>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-intro">
+    <p>You're in! Fill out the form below so we can lock in your spot and get you on the promo. Takes about <strong>60 seconds</strong>.</p>
+  </div>
+
+  <div id="form-area">
+    <div class="err-banner" id="err-banner">Something went wrong — please try again or contact us directly.</div>
+
+    <!-- Real Name -->
+    <div class="field" id="f-realname">
+      <label for="realname">Full Name</label>
+      <input type="text" id="realname" name="realname" placeholder="Your legal first and last name" autocomplete="name" inputmode="text">
+      <div class="err-msg">Please enter your full name.</div>
+    </div>
+
+    <!-- Stage Name -->
+    <div class="field" id="f-stagename">
+      <label for="stagename">Stage Name</label>
+      <input type="text" id="stagename" name="stagename" placeholder="What the crowd will know you as">
+      <div class="hint">Leave blank if same as your real name.</div>
+    </div>
+
+    <!-- Phone -->
+    <div class="field" id="f-phone">
+      <label for="phone">Phone Number</label>
+      <input type="tel" id="phone" name="phone" placeholder="(780) 000-0000" autocomplete="tel" inputmode="tel">
+      <div class="err-msg">Please enter a valid phone number.</div>
+    </div>
+
+    <!-- Instagram -->
+    <div class="field" id="f-instagram">
+      <label for="instagram">Instagram Handle</label>
+      <div class="insta-wrap" id="insta-wrap">
+        <span>@</span>
+        <input type="text" id="instagram" name="instagram" placeholder="yourhandle" autocomplete="off" autocorrect="off" autocapitalize="none" inputmode="text">
+      </div>
+      <div class="err-msg">Please enter your Instagram handle so we can tag you in promos.</div>
+    </div>
+
+    <!-- Confirmation -->
+    <div class="confirm-block" id="confirm-block">
+      <label>
+        <input type="checkbox" id="confirm" name="confirm">
+        <span>I confirm I will be at <strong>Five &amp; Dive</strong> on <strong id="confirm-date">July 30th</strong>, loaded and ready by <strong>8:00 PM</strong>, and I understand this is a solo artists competition — no additional members on stage.</span>
+      </label>
+    </div>
+
+    <button class="btn-submit" id="btn-submit" type="button" onclick="submitForm()">Confirm My Spot</button>
+    <p class="fine-print">Your info is only shared with Five &amp; Dive staff. No spam, ever.</p>
+  </div>
+
+  <!-- SUCCESS -->
+  <div class="success-screen" id="success-screen">
+    <div class="success-icon">🎸</div>
+    <h2>You're Locked In</h2>
+    <p>We've got you, <span id="success-name"></span>. See you on stage — good luck!</p>
+  </div>
+</div>
+
+<div class="footer">© Five &amp; Dive · 1650 Bourbon St, WEM · Edmonton AB</div>
+
+<script>
+// ── CONFIG ──────────────────────────────────────────────────────
+const WORKER_URL = 'https://fd-cc-sync.jlsutherland24.workers.dev';
+const SYNC_SECRET = 'FiveAndDive2024';
+
+// ── READ URL PARAMS ──────────────────────────────────────────────
+// Usage: botb-register.html?event=July+30+BOTB&date=2025-07-30&name=Solo+Artists+Edition
+function getParam(k) {
+  return new URLSearchParams(window.location.search).get(k) || '';
+}
+
+(function initLabels() {
+  const rawDate = getParam('date');   // e.g. 2025-07-30
+  const eventName = getParam('name') || 'Solo Artists Edition'; // display name
+  const eventId = getParam('event') || 'July 30 BOTB';         // storage key
+
+  let dateLabel = 'July 30, 2025';
+  let confirmDate = 'July 30th';
+  if (rawDate) {
+    try {
+      // Parse as local date to avoid UTC shift
+      const [y, m, d] = rawDate.split('-').map(Number);
+      const dt = new Date(y, m - 1, d);
+      dateLabel = dt.toLocaleDateString('en-CA', { month: 'long', day: 'numeric', year: 'numeric' });
+      const day = dt.getDate();
+      const suffix = day === 1 ? 'st' : day === 2 ? 'nd' : day === 3 ? 'rd' : 'th';
+      confirmDate = dt.toLocaleDateString('en-CA', { month: 'long' }) + ' ' + day + suffix;
+    } catch(e) {}
+  }
+
+  document.getElementById('event-date-label').textContent = dateLabel;
+  document.getElementById('event-name-label').textContent = eventName;
+  document.getElementById('confirm-date').textContent = confirmDate;
+  document.title = `Five & Dive — ${eventName} — ${dateLabel}`;
+
+  // Store for submission
+  window.FD_EVENT_ID = eventId;
+  window.FD_EVENT_DATE = rawDate || '2025-07-30';
+  window.FD_EVENT_NAME = eventName;
+})();
+
+// ── PHONE FORMATTING ────────────────────────────────────────────
+document.getElementById('phone').addEventListener('input', function() {
+  let val = this.value.replace(/\D/g, '');
+  if (val.length > 10) val = val.slice(0, 10);
+  if (val.length >= 7) {
+    this.value = '(' + val.slice(0,3) + ') ' + val.slice(3,6) + '-' + val.slice(6);
+  } else if (val.length >= 4) {
+    this.value = '(' + val.slice(0,3) + ') ' + val.slice(3);
+  } else if (val.length > 0) {
+    this.value = val;
+  }
+});
+
+// Strip @ if pasted into instagram
+document.getElementById('instagram').addEventListener('input', function() {
+  this.value = this.value.replace(/^@+/, '');
+});
+
+// ── VALIDATION ──────────────────────────────────────────────────
+function validate() {
+  let ok = true;
+
+  // Real name
+  const realname = document.getElementById('realname').value.trim();
+  setErr('f-realname', !realname);
+  if (!realname) ok = false;
+
+  // Phone
+  const phone = document.getElementById('phone').value.replace(/\D/g, '');
+  setErr('f-phone', phone.length < 10);
+  if (phone.length < 10) ok = false;
+
+  // Instagram
+  const insta = document.getElementById('instagram').value.trim();
+  const instaWrap = document.getElementById('insta-wrap');
+  if (!insta) {
+    document.getElementById('f-instagram').classList.add('has-err');
+    instaWrap.classList.add('err');
+    ok = false;
+  } else {
+    document.getElementById('f-instagram').classList.remove('has-err');
+    instaWrap.classList.remove('err');
+  }
+
+  // Confirm
+  const confirmed = document.getElementById('confirm').checked;
+  const cb = document.getElementById('confirm-block');
+  if (!confirmed) { cb.classList.add('has-err'); ok = false; }
+  else { cb.classList.remove('has-err'); }
+
+  return ok;
+}
+
+function setErr(fieldId, isErr) {
+  const el = document.getElementById(fieldId);
+  if (isErr) el.classList.add('has-err');
+  else el.classList.remove('has-err');
+}
+
+// ── SUBMIT ──────────────────────────────────────────────────────
+async function submitForm() {
+  document.getElementById('err-banner').style.display = 'none';
+  if (!validate()) return;
+
+  const btn = document.getElementById('btn-submit');
+  btn.disabled = true;
+  btn.textContent = 'Submitting…';
+
+  const payload = {
+    eventId:   window.FD_EVENT_ID,
+    eventDate: window.FD_EVENT_DATE,
+    eventName: window.FD_EVENT_NAME,
+    realName:  document.getElementById('realname').value.trim(),
+    stageName: document.getElementById('stagename').value.trim() || document.getElementById('realname').value.trim(),
+    phone:     document.getElementById('phone').value.trim(),
+    instagram: '@' + document.getElementById('instagram').value.trim().replace(/^@/, ''),
+    confirmed: true,
+    submittedAt: new Date().toISOString()
+  };
+
+  try {
+    const res = await fetch(WORKER_URL + '/events/register', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-FD-Secret': SYNC_SECRET
+      },
+      body: JSON.stringify(payload)
+    });
+
+    if (!res.ok) throw new Error('Server error ' + res.status);
+
+    // Success
+    document.getElementById('form-area').style.display = 'none';
+    document.getElementById('success-screen').style.display = 'block';
+    document.getElementById('success-name').textContent = payload.stageName || payload.realName;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+
+  } catch (err) {
+    console.error(err);
+    document.getElementById('err-banner').style.display = 'block';
+    btn.disabled = false;
+    btn.textContent = 'Confirm My Spot';
+  }
+}
+</script>
+
+</body>
+</html>

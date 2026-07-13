@@ -1,0 +1,503 @@
+<!--
+  ═══════════════════════════════════════════════════════════════════
+  FIVE & DIVE CC — EVENTS HUB INTEGRATION
+  ═══════════════════════════════════════════════════════════════════
+  
+  STEP 1: Add this to your CSS (inside your <style> block):
+  STEP 2: Add nav button to your sidebar nav list
+  STEP 3: Add renderEventsHub() case to your page router
+  STEP 4: Paste the renderEventsHub() function into your JS
+  
+  Access: EVENTS_HUB_EDITORS = ['jerrod', 'payton', 'marc']
+  ═══════════════════════════════════════════════════════════════════
+-->
+
+<!-- ═══════════════ STEP 1: CSS ═══════════════ -->
+<style>
+/* ── EVENTS HUB ─────────────────────────────────────────── */
+.eh-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+.eh-event-select {
+  flex: 1;
+  min-width: 200px;
+  padding: 9px 14px;
+  border: 1px solid var(--border, #ddd);
+  border-radius: 8px;
+  background: var(--card, #fff);
+  font-size: 14px;
+  color: var(--text, #1a1a1a);
+  cursor: pointer;
+}
+.eh-btn {
+  padding: 9px 16px;
+  border-radius: 8px;
+  border: none;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+.eh-btn:hover { opacity: 0.82; }
+.eh-btn-primary { background: #c8a84b; color: #0d0d0d; }
+.eh-btn-ghost {
+  background: transparent;
+  border: 1px solid var(--border, #ddd);
+  color: var(--text-muted, #666);
+}
+.eh-link-section {
+  background: var(--card, #fff);
+  border: 1px solid var(--border, #ddd);
+  border-radius: 12px;
+  padding: 18px 20px;
+  margin-bottom: 20px;
+}
+.eh-link-section h4 {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-muted, #888);
+  margin-bottom: 12px;
+}
+.eh-link-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.eh-link-row input[type="text"] {
+  flex: 1;
+  min-width: 200px;
+  padding: 9px 12px;
+  border: 1px solid var(--border, #ddd);
+  border-radius: 8px;
+  font-size: 13px;
+  color: var(--text, #1a1a1a);
+  background: var(--bg, #f8f8f8);
+  font-family: monospace;
+}
+.eh-copy-btn {
+  padding: 9px 14px;
+  background: #f0f0f0;
+  border: 1px solid var(--border, #ddd);
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  color: var(--text, #333);
+  white-space: nowrap;
+}
+.eh-copy-btn.copied { background: #e6f4ea; color: #27ae60; }
+
+/* Stat bar */
+.eh-stats {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 18px;
+  flex-wrap: wrap;
+}
+.eh-stat {
+  background: var(--card, #fff);
+  border: 1px solid var(--border, #ddd);
+  border-radius: 10px;
+  padding: 12px 18px;
+  flex: 1;
+  min-width: 100px;
+  text-align: center;
+}
+.eh-stat .num {
+  font-size: 28px;
+  font-weight: 800;
+  color: #c8a84b;
+  line-height: 1;
+}
+.eh-stat .lbl {
+  font-size: 11px;
+  color: var(--text-muted, #888);
+  margin-top: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+
+/* Contestant cards */
+.eh-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 14px;
+}
+.eh-card {
+  background: var(--card, #fff);
+  border: 1px solid var(--border, #ddd);
+  border-radius: 12px;
+  padding: 16px 18px;
+  position: relative;
+}
+.eh-card-num {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  font-size: 20px;
+  font-weight: 900;
+  color: #e8e4dd;
+  line-height: 1;
+}
+.eh-card-stage {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text, #1a1a1a);
+  margin-bottom: 2px;
+}
+.eh-card-real {
+  font-size: 12px;
+  color: var(--text-muted, #888);
+  margin-bottom: 10px;
+}
+.eh-card-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  color: var(--text, #444);
+  margin-bottom: 4px;
+}
+.eh-card-row .ico { font-size: 14px; flex-shrink: 0; }
+.eh-card-actions {
+  margin-top: 10px;
+  display: flex;
+  gap: 6px;
+}
+.eh-del-btn {
+  font-size: 11px;
+  padding: 4px 10px;
+  background: transparent;
+  border: 1px solid #f5c6c6;
+  color: #c0392b;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.eh-del-btn:hover { background: #fff5f5; }
+
+.eh-empty {
+  text-align: center;
+  padding: 48px 24px;
+  color: var(--text-muted, #999);
+  font-size: 14px;
+}
+.eh-new-event {
+  background: var(--card, #fff);
+  border: 1px dashed var(--border, #ddd);
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 20px;
+}
+.eh-new-event h4 {
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 14px;
+  color: var(--text, #333);
+}
+.eh-field-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+.eh-field-row input {
+  flex: 1;
+  min-width: 150px;
+  padding: 9px 12px;
+  border: 1px solid var(--border, #ddd);
+  border-radius: 8px;
+  font-size: 14px;
+  background: var(--bg, #f8f8f8);
+  color: var(--text, #1a1a1a);
+}
+.eh-access-denied {
+  text-align: center;
+  padding: 60px 24px;
+  color: var(--text-muted, #999);
+}
+.eh-access-denied .ico { font-size: 36px; margin-bottom: 12px; }
+</style>
+
+
+<!-- ═══════════════ STEP 2: NAV BUTTON ═══════════════ 
+     Find your sidebar nav list and add this item:
+     (adjust class names to match your existing nav items)
+-->
+<li>
+  <button onclick="navigate('events')" id="nav-events">🎸 Events</button>
+</li>
+
+
+<!-- ═══════════════ STEP 3: ROUTER CASE ═══════════════
+     In your navigate() or renderPage() function, add:
+     case 'events': renderEventsHub(); break;
+-->
+
+
+<!-- ═══════════════ STEP 4: JS FUNCTION ═══════════════
+     Paste this entire block into your <script> section.
+-->
+<script>
+// ── EVENTS HUB ACCESS ───────────────────────────────────────────
+const EVENTS_HUB_EDITORS = ['jerrod', 'payton', 'marc'];
+function canAccessEventsHub() {
+  const first = (STATE.me?.name || '').split(' ')[0].toLowerCase();
+  return EVENTS_HUB_EDITORS.includes(first);
+}
+
+// ── EVENTS HUB STATE ────────────────────────────────────────────
+// Stored in STATE.events (persisted to localStorage)
+// STATE.events = {
+//   registrations: [],   // pulled from D1
+//   lastPull: 0,
+// }
+
+function ehDefaultState() {
+  return { registrations: [], lastPull: 0 };
+}
+
+// ── RENDER ──────────────────────────────────────────────────────
+async function renderEventsHub() {
+  const page = document.getElementById('page-content'); // adjust to your main content container ID
+  if (!page) return;
+
+  if (!canAccessEventsHub()) {
+    page.innerHTML = `
+      <div class="eh-access-denied">
+        <div class="ico">🔒</div>
+        <div>Events Hub is available to Jerrod, Payton, and Marc.</div>
+      </div>`;
+    return;
+  }
+
+  if (!STATE.events) STATE.events = ehDefaultState();
+
+  // Group registrations by eventId
+  const regs = STATE.events.registrations || [];
+  const byEvent = {};
+  regs.forEach(r => {
+    const key = r.event_id || 'unknown';
+    if (!byEvent[key]) byEvent[key] = { name: r.event_name || key, date: r.event_date, rows: [] };
+    byEvent[key].rows.push(r);
+  });
+  const eventKeys = Object.keys(byEvent).sort((a, b) =>
+    (byEvent[b].date || '').localeCompare(byEvent[a].date || '')
+  );
+
+  // Build event selector options
+  const selectedEvent = window._ehSelectedEvent || (eventKeys[0] || '');
+
+  const selectorOpts = eventKeys.map(k =>
+    `<option value="${k}" ${k === selectedEvent ? 'selected' : ''}>${byEvent[k].name} — ${ehFmtDate(byEvent[k].date)}</option>`
+  ).join('');
+
+  const currentRegs = selectedEvent && byEvent[selectedEvent] ? byEvent[selectedEvent].rows : [];
+  const total = currentRegs.length;
+  const confirmed = currentRegs.filter(r => r.confirmed).length;
+
+  // Build registration form link
+  const baseFormUrl = 'https://jerrod-tech.github.io/fivedive/botb-register.html'; // UPDATE if different
+  let formLink = '';
+  if (selectedEvent && byEvent[selectedEvent]) {
+    const ev = byEvent[selectedEvent];
+    const params = new URLSearchParams({
+      event: selectedEvent,
+      date: ev.date || '',
+      name: ev.name || ''
+    });
+    formLink = `${baseFormUrl}?${params.toString()}`;
+  }
+
+  page.innerHTML = `
+    <div style="max-width:900px; margin:0 auto; padding:0 4px;">
+      <h2 style="font-size:20px; font-weight:800; margin-bottom:16px;">🎸 Events Hub</h2>
+
+      <!-- New Event Generator -->
+      <div class="eh-new-event">
+        <h4>Generate a New Registration Form Link</h4>
+        <div class="eh-field-row">
+          <input type="text" id="eh-new-name" placeholder="Event name e.g. Solo Artists BOTB" value="">
+          <input type="date" id="eh-new-date" value="">
+        </div>
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+          <button class="eh-btn eh-btn-primary" onclick="ehGenerateLink()">Generate Link</button>
+        </div>
+        <div id="eh-generated-link-row" style="margin-top:12px; display:none;">
+          <div class="eh-link-section" style="margin-bottom:0;">
+            <h4>Registration Form Link — copy &amp; paste into your email</h4>
+            <div class="eh-link-row">
+              <input type="text" id="eh-gen-url" readonly>
+              <button class="eh-copy-btn" id="eh-copy-gen" onclick="ehCopyGenLink()">Copy Link</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Event Selector + Refresh -->
+      <div class="eh-toolbar">
+        <select class="eh-event-select" id="eh-event-select" onchange="ehSwitchEvent(this.value)">
+          ${eventKeys.length ? selectorOpts : '<option value="">— No events yet —</option>'}
+        </select>
+        <button class="eh-btn eh-btn-primary" onclick="ehPullRegistrations()">↻ Refresh</button>
+        ${formLink ? `<button class="eh-btn eh-btn-ghost" onclick="ehCopyFormLink()">📋 Copy Form Link</button>` : ''}
+      </div>
+
+      <!-- Hidden form link field -->
+      <input type="text" id="eh-form-link-value" value="${formLink}" style="position:absolute;opacity:0;pointer-events:none;">
+
+      <!-- Stats -->
+      <div class="eh-stats">
+        <div class="eh-stat"><div class="num">${total}</div><div class="lbl">Registered</div></div>
+        <div class="eh-stat"><div class="num">${confirmed}</div><div class="lbl">Confirmed</div></div>
+        <div class="eh-stat"><div class="num">${7 - total > 0 ? 7 - total : 0}</div><div class="lbl">Spots Left</div></div>
+      </div>
+
+      <!-- Cards -->
+      ${total === 0 ? `
+        <div class="eh-empty">
+          No registrations yet for this event.<br>
+          Generate a link above and include it in your email.
+        </div>
+      ` : `
+        <div class="eh-grid">
+          ${currentRegs.map((r, i) => `
+            <div class="eh-card">
+              <div class="eh-card-num">#${i + 1}</div>
+              <div class="eh-card-stage">${ehEsc(r.stage_name || r.real_name)}</div>
+              <div class="eh-card-real">${r.stage_name && r.stage_name !== r.real_name ? ehEsc(r.real_name) : ''}</div>
+              <div class="eh-card-row"><span class="ico">📱</span>${ehEsc(r.phone)}</div>
+              <div class="eh-card-row"><span class="ico">📸</span>${ehEsc(r.instagram)}</div>
+              <div class="eh-card-row"><span class="ico">⏰</span>${ehFmtDate(r.submitted_at)}</div>
+              <div class="eh-card-actions">
+                <button class="eh-del-btn" onclick="ehDeleteReg('${r.id}', '${ehEsc(r.stage_name || r.real_name)}')">Remove</button>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      `}
+
+      <div style="margin-top:18px; font-size:11px; color:var(--text-muted,#999);">
+        Last refreshed: ${STATE.events.lastPull ? new Date(STATE.events.lastPull).toLocaleTimeString() : 'Never'}
+      </div>
+    </div>
+  `;
+}
+
+// ── HELPERS ─────────────────────────────────────────────────────
+function ehEsc(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function ehFmtDate(d) {
+  if (!d) return '';
+  try {
+    // Handle both ISO datetime and YYYY-MM-DD
+    if (d.includes('T')) return new Date(d).toLocaleString('en-CA', { month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' });
+    const [y,m,day] = d.split('-').map(Number);
+    return new Date(y, m-1, day).toLocaleDateString('en-CA', { month:'short', day:'numeric', year:'numeric' });
+  } catch(e) { return d; }
+}
+
+function ehSwitchEvent(val) {
+  window._ehSelectedEvent = val;
+  renderEventsHub();
+}
+
+// ── PULL FROM D1 ────────────────────────────────────────────────
+async function ehPullRegistrations() {
+  const btn = document.querySelector('.eh-btn-primary');
+  if (btn) { btn.textContent = 'Loading…'; btn.disabled = true; }
+
+  try {
+    // REPLACE with your actual Worker URL and secret constants
+    const WORKER = window.FD_WORKER_URL || 'https://fd-cc-sync.jlsutherland24.workers.dev';
+    const SECRET = window.FD_SYNC_SECRET || 'FiveAndDive2024';
+
+    const res = await fetch(WORKER + '/events/list', {
+      headers: { 'X-FD-Secret': SECRET }
+    });
+    if (!res.ok) throw new Error('Worker error ' + res.status);
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error);
+
+    if (!STATE.events) STATE.events = ehDefaultState();
+    STATE.events.registrations = data.registrations || [];
+    STATE.events.lastPull = Date.now();
+    saveState(); // your existing save function
+    renderEventsHub();
+  } catch (err) {
+    if (btn) { btn.textContent = '↻ Refresh'; btn.disabled = false; }
+    alert('Could not load registrations: ' + err.message);
+  }
+}
+
+// ── DELETE REGISTRATION ─────────────────────────────────────────
+async function ehDeleteReg(id, name) {
+  if (!confirm(`Remove ${name} from this event?`)) return;
+
+  try {
+    const WORKER = window.FD_WORKER_URL || 'https://fd-cc-sync.jlsutherland24.workers.dev';
+    const SECRET = window.FD_SYNC_SECRET || 'FiveAndDive2024';
+
+    const res = await fetch(WORKER + '/events/delete', {
+      method: 'DELETE',
+      headers: { 'Content-Type':'application/json', 'X-FD-Secret': SECRET },
+      body: JSON.stringify({ id })
+    });
+    if (!res.ok) throw new Error('Delete failed');
+    // Remove locally too
+    if (STATE.events && STATE.events.registrations) {
+      STATE.events.registrations = STATE.events.registrations.filter(r => r.id !== id);
+      saveState();
+    }
+    renderEventsHub();
+  } catch (err) {
+    alert('Could not remove: ' + err.message);
+  }
+}
+
+// ── GENERATE FORM LINK ──────────────────────────────────────────
+function ehGenerateLink() {
+  const name = document.getElementById('eh-new-name')?.value.trim();
+  const date = document.getElementById('eh-new-date')?.value;
+  if (!name || !date) { alert('Enter an event name and date first.'); return; }
+
+  const eventId = name.toLowerCase().replace(/[^a-z0-9]+/g, '_') + '_' + date;
+  const baseFormUrl = 'https://jerrod-tech.github.io/fivedive/botb-register.html'; // UPDATE if different
+  const params = new URLSearchParams({ event: eventId, date, name });
+  const link = `${baseFormUrl}?${params.toString()}`;
+
+  const row = document.getElementById('eh-generated-link-row');
+  const inp = document.getElementById('eh-gen-url');
+  if (row && inp) {
+    inp.value = link;
+    row.style.display = 'block';
+  }
+}
+
+function ehCopyGenLink() {
+  const val = document.getElementById('eh-gen-url')?.value;
+  if (!val) return;
+  navigator.clipboard.writeText(val).then(() => {
+    const btn = document.getElementById('eh-copy-gen');
+    if (btn) { btn.textContent = 'Copied!'; btn.classList.add('copied'); setTimeout(() => { btn.textContent = 'Copy Link'; btn.classList.remove('copied'); }, 2000); }
+  });
+}
+
+function ehCopyFormLink() {
+  const val = document.getElementById('eh-form-link-value')?.value;
+  if (!val) return;
+  navigator.clipboard.writeText(val).then(() => {
+    // Find the ghost button by its text content
+    const btns = document.querySelectorAll('.eh-btn-ghost');
+    btns.forEach(b => { if (b.textContent.includes('Copy')) { b.textContent = '✓ Copied!'; setTimeout(() => { b.textContent = '📋 Copy Form Link'; }, 2000); } });
+  });
+}
+// ── END EVENTS HUB ──────────────────────────────────────────────
+</script>
