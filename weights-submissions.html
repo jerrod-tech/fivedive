@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Five & Dive Weights Intake</title>
+<style>
+*{box-sizing:border-box}
+:root{--bg:#0d1117;--panel:#161b22;--panel2:#1c2128;--border:#30363d;--text:#e6edf3;--muted:#8b949e;--green:#38bd82;--amber:#d2a43a;--red:#e05c5c;--blue:#58a6ff}
+body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+.wrap{max-width:1120px;margin:0 auto;padding:22px}
+.top{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:18px}
+h1{margin:0;color:var(--green);font-size:28px;line-height:1.1}
+.sub{color:var(--muted);font-size:13px;margin-top:6px}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+button,.btn{border:1px solid var(--border);background:var(--panel2);color:var(--text);border-radius:8px;padding:10px 13px;font-weight:700;cursor:pointer;text-decoration:none;font-size:13px}
+button.primary{background:var(--green);border-color:var(--green);color:#06120c}
+button:disabled{opacity:.45;cursor:not-allowed}
+input{background:var(--panel);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:10px 12px;font-size:14px}
+.card{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:12px}
+.login{max-width:420px;margin:12vh auto}
+.label{font-size:10px;letter-spacing:1.4px;text-transform:uppercase;color:var(--muted);font-weight:800;margin-bottom:8px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:12px}
+.stat{background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:12px}
+.stat b{display:block;font-size:21px;margin-top:4px}
+.submission{border-left:4px solid var(--blue)}
+.submission.reviewed{border-left-color:var(--green);opacity:.84}
+.head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:10px}
+.shift{font-size:12px;font-weight:900;color:var(--amber);letter-spacing:.8px;text-transform:uppercase}
+.meta{font-size:12px;color:var(--muted);margin-top:3px}
+.bins{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin:10px 0}
+.bin{background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:10px}
+.bin img{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:6px;border:1px solid var(--border);background:#000;margin-bottom:8px;cursor:pointer}
+.bin-title{font-weight:900;margin-bottom:4px}
+.nums{display:flex;gap:8px;flex-wrap:wrap;font-size:13px}
+.pill{border:1px solid var(--border);border-radius:999px;padding:4px 8px;background:#111820}
+.empty{color:var(--muted);text-align:center;padding:34px}
+.toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:#30363d;color:#fff;border-radius:999px;padding:9px 16px;font-size:13px;opacity:0;transition:.2s;pointer-events:none}
+.toast.show{opacity:1}
+.photo{position:fixed;inset:0;background:rgba(0,0,0,.92);display:none;align-items:center;justify-content:center;padding:18px;z-index:20}
+.photo img{max-width:100%;max-height:100%;border-radius:8px}
+.photo button{position:absolute;top:16px;right:16px}
+@media(max-width:640px){.wrap{padding:14px}.top{display:block}.top .row{margin-top:12px}.head{display:block}.head .row{margin-top:10px}}
+</style>
+</head>
+<body>
+<main class="wrap">
+  <section id="login" class="card login">
+    <h1>Weights Intake</h1>
+    <div class="sub">Manager review for bartender photo submissions.</div>
+    <div style="height:18px"></div>
+    <div class="label">Command Center sync secret</div>
+    <div class="row">
+      <input id="secret" type="password" autocomplete="off" placeholder="Enter sync secret" style="flex:1">
+      <button class="primary" onclick="unlock()">Open</button>
+    </div>
+    <div id="loginMsg" class="sub" style="color:var(--red);min-height:18px;margin-top:10px"></div>
+  </section>
+
+  <section id="app" style="display:none">
+    <div class="top">
+      <div>
+        <h1>Weights Intake</h1>
+        <div class="sub">Review bartender-submitted photos and verified numbers before entering/accepting in the Command Center Weights Hub.</div>
+      </div>
+      <div class="row">
+        <a class="btn" href="https://jerrod-tech.github.io/fivedive/" target="_blank">Open Command Center</a>
+        <a class="btn" href="https://jerrod-tech.github.io/fivedive-weights/?v=aea009b5" target="_blank">Open Photo App</a>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="row">
+        <input id="day" type="date">
+        <button class="primary" onclick="loadSubmissions()">Refresh</button>
+        <button onclick="copySummary()">Copy Summary</button>
+      </div>
+    </div>
+
+    <div id="stats" class="grid"></div>
+    <div id="list"></div>
+  </section>
+</main>
+
+<div id="toast" class="toast"></div>
+<div id="photo" class="photo" onclick="closePhoto()">
+  <button onclick="closePhoto()">Close</button>
+  <img id="photoImg" src="" alt="">
+</div>
+
+<script>
+const WORKER = 'https://fd-cc-sync.jlsutherland24.workers.dev';
+let submissions = [];
+
+function businessDay() {
+  const d = new Date(Date.now() - 6 * 60 * 60 * 1000);
+  return d.toISOString().slice(0, 10);
+}
+
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 1800);
+}
+
+function unlock() {
+  const secret = document.getElementById('secret').value.trim();
+  if (!secret) {
+    document.getElementById('loginMsg').textContent = 'Enter the sync secret';
+    return;
+  }
+  sessionStorage.setItem('fdWeightsIntakeSecret', secret);
+  sessionStorage.setItem('fdWeightsIntakeOpen', '1');
+  document.getElementById('login').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  document.getElementById('day').value = businessDay();
+  loadSubmissions();
+}
+
+function syncSecret() {
+  return sessionStorage.getItem('fdWeightsIntakeSecret') || '';
+}
+
+function reviewedMap() {
+  try { return JSON.parse(localStorage.getItem('fdWeightsReviewed') || '{}'); }
+  catch { return {}; }
+}
+
+function setReviewed(id, value) {
+  const map = reviewedMap();
+  if (value) map[id] = Date.now();
+  else delete map[id];
+  localStorage.setItem('fdWeightsReviewed', JSON.stringify(map));
+  render();
+}
+
+async function loadSubmissions() {
+  const day = document.getElementById('day').value || businessDay();
+  const list = document.getElementById('list');
+  list.innerHTML = '<div class="empty">Loading submissions...</div>';
+  try {
+    const r = await fetch(WORKER + '/weights/submissions?day=' + encodeURIComponent(day), {
+      headers: { 'X-FD-Secret': syncSecret() }
+    });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const data = await r.json();
+    submissions = Array.isArray(data.submissions) ? data.submissions : [];
+    render();
+  } catch (e) {
+    list.innerHTML = '<div class="card empty" style="color:var(--red)">Could not load submissions. Check sync/Worker settings.</div>';
+  }
+}
+
+function totals() {
+  const out = {};
+  submissions.forEach(s => (s.bins || []).forEach(b => {
+    const cat = b.cat || 'Uncategorized';
+    if (!out[cat]) out[cat] = { oz: 0, bottles: 0, bins: 0 };
+    out[cat].oz += Number(b.oz || 0);
+    out[cat].bottles += Number(b.bottles || 0);
+    out[cat].bins += 1;
+  }));
+  return out;
+}
+
+function renderStats() {
+  const map = reviewedMap();
+  const totalBins = submissions.reduce((sum, s) => sum + ((s.bins || []).length), 0);
+  const reviewed = submissions.filter(s => map[s.id]).length;
+  const t = totals();
+  const totalOz = Object.values(t).reduce((sum, v) => sum + v.oz, 0);
+  document.getElementById('stats').innerHTML =
+    '<div class="stat"><span class="label">Submissions</span><b>' + submissions.length + '</b></div>' +
+    '<div class="stat"><span class="label">Bins</span><b>' + totalBins + '</b></div>' +
+    '<div class="stat"><span class="label">Reviewed</span><b>' + reviewed + '/' + submissions.length + '</b></div>' +
+    '<div class="stat"><span class="label">Total Oz</span><b>' + totalOz.toFixed(1) + '</b></div>';
+}
+
+function render() {
+  renderStats();
+  const list = document.getElementById('list');
+  if (!submissions.length) {
+    list.innerHTML = '<div class="card empty">No bartender submissions for this date yet.</div>';
+    return;
+  }
+  const map = reviewedMap();
+  list.innerHTML = submissions.map((s, i) => {
+    const reviewed = !!map[s.id];
+    const when = s.submittedAt ? new Date(s.submittedAt).toLocaleString('en-CA', { hour:'2-digit', minute:'2-digit', month:'short', day:'numeric' }) : '';
+    const bins = (s.bins || []).map((b, bi) => {
+      const photo = b.photoUrl || b.url || '';
+      return '<div class="bin">' +
+        (photo ? '<img src="' + esc(photo) + '" onclick="openPhoto(' + i + ',' + bi + ')" alt="Bin photo">' : '<div class="empty" style="padding:28px 0">No photo</div>') +
+        '<div class="bin-title">Bin ' + esc(b.binNum || bi + 1) + ' - ' + esc(b.cat || '') + '</div>' +
+        '<div class="nums"><span class="pill">' + esc(b.oz || 0) + ' oz</span><span class="pill">' + esc(b.bottles || 0) + ' bottles</span></div>' +
+      '</div>';
+    }).join('');
+    return '<article class="card submission ' + (reviewed ? 'reviewed' : '') + '">' +
+      '<div class="head"><div><div class="shift">' + esc(s.shift || '') + '</div><div class="meta">' + esc(s.staffName || s.submittedBy || 'Bartender') + ' - ' + esc(when) + '</div></div>' +
+      '<div class="row"><button onclick="copyOne(' + i + ')">Copy</button><button class="' + (reviewed ? '' : 'primary') + '" onclick="setReviewed(' + JSON.stringify(s.id) + ',' + (!reviewed) + ')">' + (reviewed ? 'Reviewed' : 'Mark Reviewed') + '</button></div></div>' +
+      '<div class="bins">' + bins + '</div>' +
+    '</article>';
+  }).join('');
+}
+
+function copyOne(i) {
+  const s = submissions[i];
+  if (!s) return;
+  const lines = [String(s.shift || '').toUpperCase() + ' - ' + (s.staffName || 'Bartender')];
+  (s.bins || []).forEach(b => lines.push((b.cat || 'Bin') + ': ' + (b.oz || 0) + ' oz, ' + (b.bottles || 0) + ' bottles'));
+  navigator.clipboard.writeText(lines.join('\n')).then(() => toast('Copied'));
+}
+
+function copySummary() {
+  const t = totals();
+  const lines = ['Weights intake ' + (document.getElementById('day').value || businessDay())];
+  Object.keys(t).sort().forEach(cat => {
+    const v = t[cat];
+    lines.push(cat + ': ' + v.oz.toFixed(1) + ' oz, ' + v.bottles + ' bottles, ' + v.bins + ' bin(s)');
+  });
+  navigator.clipboard.writeText(lines.join('\n')).then(() => toast('Summary copied'));
+}
+
+function openPhoto(subIdx, binIdx) {
+  const b = submissions[subIdx] && submissions[subIdx].bins && submissions[subIdx].bins[binIdx];
+  const src = b && (b.photoUrl || b.url || '');
+  if (!src) return;
+  document.getElementById('photoImg').src = src;
+  document.getElementById('photo').style.display = 'flex';
+}
+
+function closePhoto() {
+  document.getElementById('photo').style.display = 'none';
+}
+
+function esc(v) {
+  return String(v == null ? '' : v).replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+}
+
+document.getElementById('secret').addEventListener('keydown', e => {
+  if (e.key === 'Enter') unlock();
+});
+
+if (sessionStorage.getItem('fdWeightsIntakeOpen') === '1' && syncSecret()) {
+  document.getElementById('login').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  document.getElementById('day').value = businessDay();
+  loadSubmissions();
+}
+</script>
+</body>
+</html>
